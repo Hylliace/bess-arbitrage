@@ -7,7 +7,7 @@ import numpy as np
 from backtest import backtest
 from battery import Battery
 from dispatch import optimal_dispatch
-from forecast import PARIS, weekly_forecast
+from forecast import PARIS, Ridge, features, weekly_forecast
 
 
 def timestamp(day, hour=0):
@@ -86,6 +86,20 @@ class DispatchTests(unittest.TestCase):
 
 
 class ForecastTests(unittest.TestCase):
+    def test_no_future_prices(self):
+        start = timestamp(date(2023, 2, 1))
+        known = {start - i * 3600: float(i) for i in range(1, 169)}
+        times = list(range(start, start + 48 * 3600, 3600))
+        x = features(times, known)
+        self.assertEqual(x.shape, (48, 35))
+        self.assertEqual(x[0, 0], x[24, 0])  # day 2 gets the same recent prices as day 1
+        with self.assertRaises(AssertionError):
+            features(times, {**known, start: 999.0})
+
+    def test_constant_inputs(self):
+        x = np.ones((10, 5))
+        np.testing.assert_allclose(Ridge(1.0).fit(x, np.full(10, 42.0)).predict(x), 42)
+
     def test_missing_spring_hour(self):
         known = {timestamp(date(2023, 3, 26), 1): 20, timestamp(date(2023, 3, 26), 3): 40}
         self.assertAlmostEqual(weekly_forecast([timestamp(date(2023, 4, 2), 2)], known)[0], 30)
