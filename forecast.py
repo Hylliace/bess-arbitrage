@@ -38,7 +38,7 @@ def weekly_forecast(times, known):
     return np.array(forecast)
 
 
-def features(times, known):
+def features(times, known, weekend=False):
     """One row per target hour, for a plan starting on the day of times[0].
 
     Only prices from before that day can be used (`known`). The second day of
@@ -60,13 +60,16 @@ def features(times, known):
                + [float(hour == h) for h in range(24)]
                + [float(day.weekday() == d) for d in range(7)]
                + [float(horizon)])
+        if weekend:
+            row += [p * float(day.weekday() >= 5) for p in lags]
         rows.append(row)
     return np.array(rows)
 
 
 class Ridge:
-    def __init__(self, alpha):
+    def __init__(self, alpha, weekend=False):
         self.alpha = alpha
+        self.weekend = weekend
 
     def fit(self, x, y):
         self.mean = x.mean(axis=0)
@@ -82,26 +85,26 @@ class Ridge:
         return self.intercept + ((x - self.mean) / self.std) @ self.coef
 
     def __call__(self, times, known):
-        return self.predict(features(times, known))
+        return self.predict(features(times, known, self.weekend))
 
 
-def training_set(prices, end):
+def training_set(prices, end, weekend=False):
     """One two-day plan per day from 2022-01-09, with all targets before `end`."""
     xs, ys, times = [], [], []
     day = date(2022, 1, 9)
     while day < end - DAY:
         targets = list(range(midnight(day), midnight(day + 2 * DAY), 3600))
         known = {t: prices[t] for t in range(midnight(day - 7 * DAY), midnight(day), 3600)}
-        xs.extend(features(targets, known))
+        xs.extend(features(targets, known, weekend))
         ys.extend(prices[t] for t in targets)
         times.extend(targets)
         day += DAY
     return np.array(xs), np.array(ys), np.array(times)
 
 
-def train_ridge(prices, verbose=True):
+def train_ridge(prices, weekend=False, verbose=True):
     """Pick alpha on three windows of 2022, then fit on 2022-2023."""
-    x, y, times = training_set(prices, date(2023, 1, 1))
+    x, y, times = training_set(prices, date(2023, 1, 1), weekend)
     windows = [(date(2022, 7, 1), date(2022, 9, 1)),
                (date(2022, 9, 1), date(2022, 11, 1)),
                (date(2022, 11, 1), date(2023, 1, 1))]
@@ -112,12 +115,12 @@ def train_ridge(prices, verbose=True):
             # train only on what was known before the window
             train = times < midnight(start)
             valid = (times >= midnight(start)) & (times < midnight(end))
-            model = Ridge(alpha).fit(x[train], y[train])
+            model = Ridge(alpha, weekend).fit(x[train], y[train])
             errors.append(np.mean(np.abs(model.predict(x[valid]) - y[valid])))
         scores[alpha] = np.mean(errors)
     alpha = min(scores, key=scores.get)
     if verbose:
-        print(f"ridge: alpha = {alpha:g}  "
+        print(f"ridge{' + weekend' if weekend else ''}: alpha = {alpha:g}  "
               f"(MAE on 2022: {', '.join(f'{a:g} -> {s:.2f}' for a, s in scores.items())})")
-    x, y, _ = training_set(prices, date(2024, 1, 1))
-    return Ridge(alpha).fit(x, y)
+    x, y, _ = training_set(prices, date(2024, 1, 1), weekend)
+    return Ridge(alpha, weekend).fit(x, y)

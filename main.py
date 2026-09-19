@@ -9,7 +9,7 @@ from forecast import DAY, train_ridge, weekly_forecast
 
 WEAR_COSTS = (25, 40)  # EUR per MWh taken out of the battery
 PERIODS = {
-    # to make the last choices before the test
+    # used to choose between ridge and its weekend variant
     "validation": (date(2024, 1, 1), date(2024, 7, 1)),
 }
 
@@ -24,14 +24,18 @@ def load_prices():
 
 def main():
     prices = load_prices()
-    # trained once on 2022-2023
+    # both models are trained once, on 2022-2023, and never retrained
     forecasts = {"weekly": weekly_forecast, "ridge": train_ridge(prices)}
+    weekend = train_ridge(prices, weekend=True)
 
     for period, (start, end) in PERIODS.items():
+        methods = dict(forecasts)
+        if period == "validation":
+            methods["ridge + weekend"] = weekend
         results = {}
         for cost in WEAR_COSTS:
             battery = Battery(wear_cost=cost)
-            results[cost] = {name: backtest(prices, start, end, battery, f) for name, f in forecasts.items()}
+            results[cost] = {name: backtest(prices, start, end, battery, f) for name, f in methods.items()}
             results[cost]["perfect forecast"] = perfect_forecast(prices, start, end, battery)
 
         print(f"\n{period}, {start} to {end - DAY} (MAE in EUR/MWh, gains in EUR)")

@@ -96,6 +96,15 @@ class ForecastTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             features(times, {**known, start: 999.0})
 
+    def test_weekend_columns(self):
+        start = timestamp(date(2023, 2, 3))  # a Friday, so the second day is a Saturday
+        known = {start - i * 3600: float(i) for i in range(1, 169)}
+        times = list(range(start, start + 48 * 3600, 3600))
+        base, extended = features(times, known), features(times, known, weekend=True)
+        np.testing.assert_array_equal(extended[:, :35], base)
+        np.testing.assert_array_equal(extended[:24, 35:], 0)
+        np.testing.assert_array_equal(extended[24:, 35:], base[24:, :3])
+
     def test_constant_inputs(self):
         x = np.ones((10, 5))
         np.testing.assert_allclose(Ridge(1.0).fit(x, np.full(10, 42.0)).predict(x), 42)
