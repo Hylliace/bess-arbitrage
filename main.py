@@ -3,6 +3,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+import plots
 from backtest import backtest, perfect_forecast, summary
 from battery import Battery
 from forecast import DAY, train_ridge, weekly_forecast
@@ -11,6 +12,8 @@ WEAR_COSTS = (25, 40)  # EUR per MWh taken out of the battery
 PERIODS = {
     # used to choose between ridge and its weekend variant
     "validation": (date(2024, 1, 1), date(2024, 7, 1)),
+    # kept for the end
+    "test": (date(2024, 7, 1), date(2025, 1, 1)),
 }
 
 
@@ -27,6 +30,7 @@ def main():
     # both models are trained once, on 2022-2023, and never retrained
     forecasts = {"weekly": weekly_forecast, "ridge": train_ridge(prices)}
     weekend = train_ridge(prices, weekend=True)
+    Path("figures").mkdir(exist_ok=True)
 
     for period, (start, end) in PERIODS.items():
         methods = dict(forecasts)
@@ -45,6 +49,10 @@ def main():
             mae = summary(results[WEAR_COSTS[0]][name], Battery())["mae"]
             mae = "-" if name == "perfect forecast" else f"{mae:.2f}"
             print(f"{name:20}{mae:>8}" + "".join(f"{g:>18,.0f}" for g in gains))
+
+        if period != "validation":
+            title = f"Cumulative gain after wear, {start:%B %Y} to {end - DAY:%B %Y}"
+            plots.cumulative_gains(results, title, f"figures/gains-{period}.png")
 
 
 if __name__ == "__main__":
