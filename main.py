@@ -14,12 +14,14 @@ PERIODS = {
     "validation": (date(2024, 1, 1), date(2024, 7, 1)),
     # kept for the end
     "test": (date(2024, 7, 1), date(2025, 1, 1)),
+    # downloaded after everything else was done
+    "2025": (date(2025, 1, 1), date(2025, 7, 1)),
 }
 
 
 def load_prices():
     prices = {}
-    for name in ("2022", "2023", "2024"):
+    for name in ("2022", "2023", "2024", "2025_h1"):
         raw = json.loads(Path(f"data/prices_{name}.json").read_text())
         prices.update(zip(raw["unix_seconds"], raw["price"]))
     return prices
