@@ -6,7 +6,7 @@ from pathlib import Path
 import plots
 from backtest import backtest, perfect_forecast, summary
 from battery import Battery
-from forecast import DAY, train_ridge, weekly_forecast
+from forecast import DAY, midnight, train_ridge, weekly_forecast
 
 WEAR_COSTS = (25, 40)  # EUR per MWh taken out of the battery
 PERIODS = {
@@ -55,6 +55,10 @@ def main():
         if period != "validation":
             title = f"Cumulative gain after wear, {start:%B %Y} to {end - DAY:%B %Y}"
             plots.cumulative_gains(results, title, f"figures/gains-{period}.png")
+        if period == "test":
+            first_days = [r for r in results[25]["ridge"] if r["time"] < midnight(start + 3 * DAY)]
+            plots.example(first_days, "First three days of the test, ridge, wear cost 25 €/MWh",
+                          "figures/example.png")
 
 
 if __name__ == "__main__":
