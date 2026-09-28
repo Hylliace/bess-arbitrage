@@ -8,7 +8,7 @@ from backtest import backtest, perfect_forecast, summary
 from battery import Battery
 from forecast import DAY, midnight, train_ridge, weekly_forecast
 
-WEAR_COSTS = (25, 40)  # EUR per MWh taken out of the battery
+WEAR_COSTS = (25, 40)  # EUR per MWh taken out of the battery, see method.md
 PERIODS = {
     # used to choose between ridge and its weekend variant
     "validation": (date(2024, 1, 1), date(2024, 7, 1)),
