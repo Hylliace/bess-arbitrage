@@ -37,6 +37,12 @@ The first three days of the test:
 
 There is no investment cost, grid fees or financing in any of this, and every order is assumed to be accepted at the market price, so do not read the gains as what a real battery would make. Two test periods of six months is not a lot either.
 
+Other things I tried and dropped: one ridge per hour, retraining every month, RTE consumption forecasts, boosted trees, small neural nets, a more cautious version based on past forecast errors. Some of them did better on 2023, but I had used 2023 so much by then that I did not really trust it.
+
+The idea I would look at again is training the model on the decisions instead of the price error (SPO+, and the same idea with neural nets). It was the best on 2023, about 12% more than ridge with a wear of 25 €/MWh, but 2023 is the year I used for everything, so I cannot really say it is better.
+
+Apart from the clock changes, which were a real pain to deal with, it was an interesting project and I learned a lot about the French and European electricity markets. I am still new to the field, so I probably did not split my time very well between the main model and side explorations, some of them more useful than others. I think the next big thing to look at is the day-ahead market with 15-minute prices (since October 2025), and maybe the intraday market.
+
 # Running it
 
 ```bash
